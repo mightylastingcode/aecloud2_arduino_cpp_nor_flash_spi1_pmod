@@ -50,15 +50,40 @@ THE SOFTWARE.
 
 //====================== Your Arduino Example Sketch Begin ===========//
 
+#define  DEV_ID_CMD   0x9F  // 1 byte
+
+SERIAL1 Serial  = SERIAL1();   //UART 1
+SPI1    SPI = SPI1();   // SPI 1 port
 
 void setup() {
+    Serial.begin(9600);
+    //while(!Serial);
+    Serial.println("begin uart1...");
+    SPI.begin(SPI1_SSL0);
 }
 
 void loop() {
-    digitalWrite(22, HIGH);       // sets the digital pin (YEL LED) on
+    char data[40], buf[40];
+    char cmd[2];   // only the first byte is used.
+
+    // read chip ID : Expect 0x20, 0xBA, 0x19
+    cmd[0] = DEV_ID_CMD;
+    SPI.readwrite_transfer(cmd, data, 3);
+    Serial.print("Chip ID = ");
+    Serial.print(data[0] & 0x00FF,HEX);
+    Serial.println(" HEX");
+
+    for (int i=0; i<3; i++) {
+        Serial.print("i=");
+        Serial.print(i,DEC);
+        Serial.print(" data=");
+        Serial.print(data[i] & 0x00FF,HEX);
+        Serial.println(" HEX");
+    }
+
+
     delay(1000);                  // waits for a second
-    digitalWrite(22, LOW);        // sets the digital pin (YEL LED) off
-    delay(1000);                  // waits for a second
+
 }
 
 //====================== Your Arduino Example Sketch End ===========//

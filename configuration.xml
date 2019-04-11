@@ -538,7 +538,7 @@
     <module id="module.framework.sf_spi_v2_on_sf_spi.914312372">
       <property id="module.framework.sf_spi_v2.name" value="g_sf_spi_device1"/>
       <property id="module.framework.sf_spi_v2.clk_phase" value="module.framework.sf_spi_v2.clk_phase.clk_phase_edge_odd"/>
-      <property id="module.framework.sf_spi_v2.clk_polarity" value="module.framework.sf_spi_v2.clk_polarity.clk_polarity_high"/>
+      <property id="module.framework.sf_spi_v2.clk_polarity" value="module.framework.sf_spi_v2.clk_polarity.clk_polarity_low"/>
       <property id="module.framework.sf_spi_v2.chipselect_port" value="module.framework.sf_spi_v2.chipselect_port.PORT_02"/>
       <property id="module.framework.sf_spi_v2.chipselect_pin" value="module.framework.sf_spi_v2.chipselect_pin.PIN_05"/>
       <property id="module.framework.sf_spi_v2.chipselectactive" value="module.framework.sf_spi_v2.chipselectactive.low"/>
