@@ -50,36 +50,86 @@ THE SOFTWARE.
 
 //====================== Your Arduino Example Sketch Begin ===========//
 
-#define  DEV_ID_CMD   0x9F  // 1 byte
+#define  READ_DEV_ID_CMD                0x9F  // 2 to 20 bytes
+#define  READ_STATUS_REG_CMD            0x05  // 2 bytes
+
+#define  READ_FLAG_STATUS_REGISTER_CMD      0x70  // 1 byte
+#define  CLEAR_FLAG_STATUS_REGISTER_CMD     0x50  // 1 byte
+
+#define  WRITE_ENABLE_CMD               0x06  // 1 byte
+
+
 
 SERIAL1 Serial  = SERIAL1();   //UART 1
 SPI1    SPI = SPI1();   // SPI 1 port
 
 void setup() {
+    char data[40], buf[40];
+    char cmd[2];   // only the first byte is used.
+
     Serial.begin(9600);
     //while(!Serial);
     Serial.println("begin uart1...");
     SPI.begin(SPI1_SSL0);
+
+
+    // read chip ID : Expect 0x20, 0xBA, 0x19
+     cmd[0] = READ_DEV_ID_CMD;
+     SPI.readwrite_transfer(cmd, data, 3);
+     Serial.print("Chip ID = ");
+     Serial.print(data[0] & 0x00FF,HEX);
+     Serial.println(" HEX");
+
+     for (int i=0; i<3; i++) {
+         Serial.print("i=");
+         Serial.print(i,DEC);
+         Serial.print(" data=");
+         Serial.print(data[i] & 0x00FF,HEX);
+         Serial.println(" HEX");
+     }
+
+     cmd[0] = READ_STATUS_REG_CMD;
+     SPI.readwrite_transfer(cmd, data, 1);
+     Serial.print("Status Register's Value = ");
+     Serial.print(data[0] & 0x00FF,HEX);
+     Serial.println(" HEX");
+
+     cmd[0] = READ_FLAG_STATUS_REGISTER_CMD;
+     SPI.readwrite_transfer(cmd, data, 1);
+     Serial.print("Flag Status Register's Value = ");
+     Serial.print(data[0] & 0x00FF,HEX);
+     Serial.println(" HEX");
+
+     Serial.println("Send Write enable command.");
+     cmd[0] = WRITE_ENABLE_CMD;
+     SPI.write_transfer(cmd,1);
+
+     cmd[0] = READ_STATUS_REG_CMD;
+     SPI.readwrite_transfer(cmd, data, 1);
+     Serial.print("Status Register's Value = ");
+     Serial.print(data[0] & 0x00FF,HEX);
+     Serial.println(" HEX");
+
+     cmd[0] = READ_FLAG_STATUS_REGISTER_CMD;
+     SPI.readwrite_transfer(cmd, data, 1);
+     Serial.print("Flag Status Register's Value = ");
+     Serial.print(data[0] & 0x00FF,HEX);
+     Serial.println(" HEX");
+
+     Serial.println("Send CLEAR_FLAG_STATUS command.");
+     cmd[0] = CLEAR_FLAG_STATUS_REGISTER_CMD;
+     SPI.write_transfer(cmd,1);
+
+     cmd[0] = READ_STATUS_REG_CMD;
+     SPI.readwrite_transfer(cmd, data, 1);
+     Serial.print("Status Register's Value = ");
+     Serial.print(data[0] & 0x00FF,HEX);
+     Serial.println(" HEX");
 }
 
 void loop() {
     char data[40], buf[40];
     char cmd[2];   // only the first byte is used.
-
-    // read chip ID : Expect 0x20, 0xBA, 0x19
-    cmd[0] = DEV_ID_CMD;
-    SPI.readwrite_transfer(cmd, data, 3);
-    Serial.print("Chip ID = ");
-    Serial.print(data[0] & 0x00FF,HEX);
-    Serial.println(" HEX");
-
-    for (int i=0; i<3; i++) {
-        Serial.print("i=");
-        Serial.print(i,DEC);
-        Serial.print(" data=");
-        Serial.print(data[i] & 0x00FF,HEX);
-        Serial.println(" HEX");
-    }
 
 
     delay(1000);                  // waits for a second

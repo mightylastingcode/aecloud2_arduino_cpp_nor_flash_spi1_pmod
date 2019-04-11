@@ -63,7 +63,13 @@ void  SPI1::read_transfer(char* const p_dest, int const length) {
 
 }
 void  SPI1::write_transfer(char* const p_src, int const length) {
+    ssp_err_t err = SSP_SUCCESS;
 
+    if (device_cs_pin == SPI1_SSL0) {
+        err == g_sf_spi_device1.p_api->write(g_sf_spi_device1.p_ctrl, p_src, length, SPI_BIT_WIDTH_8_BITS, TX_WAIT_FOREVER);
+    }
+    if (err)
+        APP_ERR_TRAP(err)
 }
 
 // p_src:  command string (only one byte is used.)
