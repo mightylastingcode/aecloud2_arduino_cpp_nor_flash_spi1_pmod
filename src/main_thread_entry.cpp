@@ -53,19 +53,25 @@ SERIAL1 Serial  = SERIAL1();   //UART 1
 SPI1    SPI = SPI1();   // SPI 1 port
 
 
-#define  READ_DEV_ID_CMD                0x9F  // 2 to 20 bytes
-#define  READ_STATUS_REG_CMD            0x05  // 2 bytes
-#define  READ_FLAG_STATUS_REGISTER_CMD      0x70  // 1 byte
+#define  READ_DEV_ID_CMD                0x9F  // 1 to many bytes
+#define  READ_STATUS_REG_CMD            0x05  // 1 data byte
+#define  READ_FLAG_STATUS_REGISTER_CMD      0x70  // 1 data byte
 #define  CLEAR_FLAG_STATUS_REGISTER_CMD     0x50  // 1 byte
+
+#define  READ_NONVOLATILE_CONFIGURATION_REGISTER_CMD  0xB5  // 2 data bytes
+#define  READ_VOLATILE_CONFIGURATION_REGISTER_CMD     0x85  // 2 data bytes
+
 #define  WRITE_ENABLE_CMD               0x06  // 1 byte
+#define  ARRAY_READ_CMD                 0x03  // 1+ bytes
+#define  ARRAY_FASTREAD_CMD             0x0B  // 1+ bytes
 
 void display_status_register(char statusbyte);
 void display_flag_status_register(char statusbyte);
 void display_ID_data(char *data);
 
 void setup() {
-    char data[40], buf[40];
-    char cmd[2];   // only the first byte is used.
+    char data[256], buf[40];
+    char cmd[10];   // only the first byte is used.
 
     Serial.begin(9600);
     //while(!Serial);
@@ -86,6 +92,23 @@ void setup() {
             Serial.println(" ");
     }
     display_ID_data(data);
+
+    Serial.println("==============================");
+    cmd[0] = READ_NONVOLATILE_CONFIGURATION_REGISTER_CMD;
+    SPI.readwrite_transfer(cmd, data, 2);
+    Serial.print("Nonvolatile Config Register's Value = ");
+    Serial.print(data[0] & 0x00FF,HEX);
+    Serial.print(",");
+    Serial.print(data[1] & 0x00FF,HEX);
+    Serial.println(" HEX");
+
+    Serial.println("==============================");
+    cmd[0] = READ_VOLATILE_CONFIGURATION_REGISTER_CMD;
+    SPI.readwrite_transfer(cmd, data, 1);
+    Serial.print("nvolatile Config Register's Value = ");
+    Serial.print(data[0] & 0x00FF,HEX);
+    Serial.println(" HEX");
+
 
     Serial.println("==============================");
     cmd[0] = READ_STATUS_REG_CMD;
@@ -145,6 +168,30 @@ void setup() {
     Serial.println(" HEX");
     display_flag_status_register(data[0]);
 
+    Serial.println("==============================");
+#define READHEADER   3   // 3 address bytes
+    cmd[0] = ARRAY_READ_CMD;
+    cmd[1] = 0x00;  //A<24:0>
+    cmd[2] = 0x00;
+    cmd[3] = 0x01;
+    cmd[4] = 0x85; //DATA IN
+    SPI.readwrite_transfer(cmd, data, READHEADER + 1);  //  1 data byte
+    Serial.print("Array Data Value (READ) = ");
+    Serial.print(data[READHEADER] & 0x00FF,HEX);
+    Serial.println(" HEX");
+
+
+    Serial.println("==============================");
+#define FASTREADHEADER   4   // 3 address bytes + 1 dummy bytes
+    cmd[0] = ARRAY_FASTREAD_CMD;
+    cmd[1] = 0x00;  //A<24:0>
+    cmd[2] = 0x00;
+    cmd[3] = 0x01;
+    cmd[4] = 0x85; //DATA IN
+    SPI.readwrite_transfer(cmd, data, FASTREADHEADER + 1);  //  1 data byte
+    Serial.print("Array Data Value (FAST READ) = ");
+    Serial.print(data[FASTREADHEADER] & 0x00FF,HEX);
+    Serial.println(" HEX");
 }
 
 void loop() {
