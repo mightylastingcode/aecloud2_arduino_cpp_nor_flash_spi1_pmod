@@ -65,7 +65,7 @@ THE SOFTWARE.
 typedef enum { INPUT=0, OUTPUT, INPUT_PULLUP } gpio_mode_t;
 typedef enum { FALLING = 0, RISING, CHANGE, LOW_LEVEL  } interrupt_trigger_t;
 
-typedef char byte;
+typedef unsigned char byte;
 
 #define HIGH 1
 #define LOW  0

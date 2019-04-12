@@ -138,7 +138,10 @@ void  SERIAL1::print (int number, format_t format){
     if (format == DEC)
         sprintf(g_buffer, "%d", number);
     else if (format == HEX)
-        sprintf(g_buffer, "%X", number);
+        if (number < 16)
+            sprintf(g_buffer, "0%X", number);
+        else
+            sprintf(g_buffer, "%X", number);
     else if (format == OCT)
         sprintf(g_buffer, "%o", number);
     else if (format == BIN)
