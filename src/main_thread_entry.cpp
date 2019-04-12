@@ -57,11 +57,17 @@ N25Q256A  norflash = N25Q256A();
 
 void setup() {
     char str[NAME_STR_LEN];
-    char data[256+10];  // add overhead.
+    char data[256+10];  // add overhead (10) to cover command,address,dummy clocks
+
+    byte sect_add = 0;
+    byte pgm_add  = 0;
+    byte byte_add = 0;
+    status_reg_t status_reg;
 
     Serial.begin(9600);
     //while(!Serial);
     Serial.println("\n\nbegin uart1...\n\n");
+
     norflash.begin();
 
     norflash.get_manufacturer_name(str);
@@ -77,21 +83,93 @@ void setup() {
         Serial.println("This memory device is supported.");
     else
         Serial.println("This memory device is not supported.");
-
-
+    /////////////////////////////////////////////////////////////
     // Read device ID by user
     norflash.read_DEV_ID(data);
     Serial.print("Chip ID read = ");
-    for (int i=0; i<DEV_ID_DATA_LEN; i++) {
+    for (int i=0; i<DEV_ID_DATA_LEN_MAX; i++) {
         Serial.print(data[i] & 0x00FF,HEX);
-        if (i<DEV_ID_DATA_LEN-1)
+        if (i<DEV_ID_DATA_LEN_MAX-1)
             Serial.print(",");
         else
             Serial.println(" ");
     }
+    /////////////////////////////////////////////////////////////
+    status_reg.status_byte = norflash.read_status_register();
+    Serial.print("Status Register's Value = ");
+    Serial.print((char)(status_reg.status_byte) & 0x00FF,HEX);
+    Serial.println(" HEX");
+    norflash.display_status_register(status_reg);
+    /////////////////////////////////////////////////////////////
+    norflash.write_enable();
+    /////////////////////////////////////////////////////////////
+    status_reg.status_byte = norflash.read_status_register();
+    Serial.print("Status Register's Value = ");
+    Serial.print((char)(status_reg.status_byte) & 0x00FF,HEX);
+    Serial.println(" HEX");
+    norflash.display_status_register(status_reg);
 
+    /////////////////////////////////////////////////////////////
+    sect_add = 0;
+    pgm_add = 0x00;
+    byte_add = 0;
+    //norflash.read_array_data(data, sect_add, pgm_add, byte_add);
+    norflash.fastread_array_data(data, sect_add, pgm_add, byte_add);
 
-}
+    Serial.print("read data = ");
+    Serial.println(data[0] & 0x00FF,HEX);
+
+    for (int i=0; i< 256; i++) {
+           Serial.print(data[i] & 0x00FF,HEX);
+           Serial.print(", ");
+           if (i%10 == 9) Serial.println(" ");
+     }
+     Serial.println(" ");
+
+     //norflash.read_array_data(data, sect_add, pgm_add, byte_add, 256);
+     norflash.fastread_array_data(data, sect_add, pgm_add, byte_add,256);
+
+     Serial.print("read data = ");
+     Serial.println(data[0] & 0x00FF,HEX);
+
+     for (int i=0; i< 256; i++) {
+            Serial.print(data[i] & 0x00FF,HEX);
+            Serial.print(", ");
+            if (i%10 == 9) Serial.println(" ");
+      }
+      Serial.println(" ");
+
+      /////////////////////////////////////////////////////////////
+      sect_add = 0;
+      pgm_add = 0x0E;
+      byte_add = 0;
+      //norflash.read_array_data(data, sect_add, pgm_add, byte_add);
+      norflash.fastread_array_data(data, sect_add, pgm_add, byte_add);
+
+      Serial.print("read data = ");
+      Serial.println(data[0] & 0x00FF,HEX);
+
+      for (int i=0; i< 256; i++) {
+             Serial.print(data[i] & 0x00FF,HEX);
+             Serial.print(", ");
+             if (i%10 == 9) Serial.println(" ");
+       }
+       Serial.println(" ");
+
+       //norflash.read_array_data(data, sect_add, pgm_add, byte_add, 256);
+       norflash.fastread_array_data(data, sect_add, pgm_add, byte_add,256);
+
+       Serial.print("read data = ");
+       Serial.println(data[0] & 0x00FF,HEX);
+
+       for (int i=0; i< 256; i++) {
+              Serial.print(data[i] & 0x00FF,HEX);
+              Serial.print(", ");
+              if (i%10 == 9) Serial.println(" ");
+        }
+        Serial.println(" ");
+      /////////////////////////////////////////////////////////////
+    }
 
 void loop() {
     delay(1000);                  // waits for a second

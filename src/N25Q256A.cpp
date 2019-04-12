@@ -47,24 +47,13 @@ N25Q256A::N25Q256A() {
 }
 
 boolean N25Q256A::begin(void) {
-  char data[DEV_ID_DATA_LEN];
+  char data[DEV_ID_DATA_LEN_MAX];
   SPI.begin(SPI1_SSL0);
   N25Q256A::read_DEV_ID(data);
-
-  /*
-  Serial.print("Chip ID read = ");
-  for (int i=0; i<DEV_ID_DATA_LEN; i++) {
-      Serial.print(data[i] & 0x00FF,HEX);
-      if (i<DEV_ID_DATA_LEN-1)
-          Serial.print(",");
-      else
-          Serial.println(" ");
-  }
-  */
   return true;
 }
 
-boolean N25Q256A::read_DEV_ID(char *data, int len) {
+void N25Q256A::read_DEV_ID(char *data, int len) {
     char cmd[2];
     cmd[0] = READ_DEV_ID_CMD;
     SPI.readwrite_transfer(cmd, data, len);
@@ -72,9 +61,122 @@ boolean N25Q256A::read_DEV_ID(char *data, int len) {
     N25Q256A::_device_id_mem_type_code = data[1];
     N25Q256A::_device_id_mem_size_code = data[2];
     N25Q256A::process_DEV_ID();
-    return true;
 }
 
+// Read array bytes for general cases.
+// input:  erase sector address (8 bits), program page address (8 bits), byte address (8 bits), len (255 max)
+// output: data 1. array size required = len + READHEADER + 1
+//
+void N25Q256A::read_array_data(char *data, byte sect_add, byte pgm_add, byte byte_add, int len) {
+    char cmd[10];
+
+    cmd[0] = ARRAY_READ_CMD;
+    cmd[1] = sect_add;   //A<24:16> - Erase Sectors
+                         //A<15:12> - Erase Subsectors
+    cmd[2] = pgm_add;    //A<11:8> -  Program Pages
+    cmd[3] = byte_add;   //A<7:0> bytes in Page address
+    cmd[4] = 0x85; //First DATA IN
+
+    N25Q256A::print_cmd("ARRAY_READ", cmd);
+
+    if (len <= 256) {
+        SPI.readwrite_transfer(cmd, data, READHEADER + len);
+        for (int i=0; i< len; i++) {
+            data[i] = data[READHEADER+i];
+        }
+    }
+}
+
+// Fast Read array bytes for general cases.
+// input:  erase sector address (8 bits), program page address (8 bits), byte address (8 bits), len (255 max)
+// output: data 1. array size required = len + READHEADER + 1
+//
+// Assume: Default setting for number of dummy clocks = 8 clocks
+void N25Q256A::fastread_array_data(char *data, byte sect_add, byte pgm_add, byte byte_add, int len) {
+    char cmd[10];
+
+    cmd[0] = ARRAY_FASTREAD_CMD;
+    cmd[1] = sect_add;   //A<24:16> - Erase Sectors
+                         //A<15:12> - Erase Subsectors
+    cmd[2] = pgm_add;    //A<11:8> -  Program Pages
+    cmd[3] = byte_add;   //A<7:0> bytes in Page address
+    cmd[4] = 0x85; //First DATA IN
+
+    N25Q256A::print_cmd("ARRAY_FASTREAD",cmd);
+
+    if (len <= 256) {
+        SPI.readwrite_transfer(cmd, data, FASTREADHEADER + len);
+        for (int i=0; i< len; i++) {
+            data[i] = data[FASTREADHEADER+i];
+        }
+    }
+}
+
+byte N25Q256A::read_status_register(void){
+    char cmd[5];
+    char data[5];
+
+    cmd[0] = READ_STATUS_REG_CMD;
+    cmd[1] = 0;
+    cmd[2] = 0;
+    cmd[3] = 0;
+    N25Q256A::print_cmd("READ_STATUS_REG",cmd);
+    SPI.readwrite_transfer(cmd, data, 1);
+    return data[0];
+}
+
+void N25Q256A::write_enable(void) {
+    char cmd[5];
+    char data[5];
+
+    cmd[0] = WRITE_ENABLE_CMD;
+    cmd[1] = 0;
+    cmd[2] = 0;
+    cmd[3] = 0;
+    N25Q256A::print_cmd("WRITE_ENABLE",cmd);
+    SPI.write_transfer(cmd,1);
+
+}
+
+
+void N25Q256A::display_status_register(status_reg_t reg){
+    if (reg.status_bitname.statusreg_wr_enb)
+        Serial.println("Bit 7 Status Register write allowed = No");
+    else
+        Serial.println("Bit 7 Status Register write allowed = Yes");
+    if (reg.status_bitname.topbot)
+        Serial.println("Bit 5 T/B = Bottom");
+    else
+        Serial.println("Bit 5 T/B = Top");
+    Serial.print("Bit 6,4,3,2 Block Protection = ");
+    Serial.print((char)reg.status_bits.b6);
+    Serial.print((char)reg.status_bits.b4);
+    Serial.print((char)reg.status_bits.b3);
+    Serial.print((char)reg.status_bits.b2);
+    Serial.println(" ");
+    if (reg.status_bitname.write_en)
+        Serial.println("Bit 1 Write enable latch = ON");
+    else
+        Serial.println("Bit 1 Write enable latch = OFF");
+    if (reg.status_bitname.busy)
+        Serial.println("Bit 0 Write in progress = True (Busy)");
+    else
+        Serial.println("Bit 0 Write in progress = False (Ready)");
+
+}
+
+void N25Q256A::print_cmd (char* name, char *cmd) {
+    Serial.print(name);
+    Serial.print(": ");
+    Serial.print(cmd[0] & 0x00FF,HEX);
+    Serial.print(", ");
+    Serial.print(cmd[1] & 0x00FF,HEX);
+    Serial.print(", ");
+    Serial.print(cmd[2] & 0x00FF,HEX);
+    Serial.print(", ");
+    Serial.print(cmd[3] & 0x00FF,HEX);
+    Serial.println(" ");
+}
 void N25Q256A::process_DEV_ID(void) {
     N25Q256A::valid_dev_support = true;
 

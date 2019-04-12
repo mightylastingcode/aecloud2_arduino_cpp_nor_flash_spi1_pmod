@@ -65,7 +65,20 @@ THE SOFTWARE.
 typedef enum { INPUT=0, OUTPUT, INPUT_PULLUP } gpio_mode_t;
 typedef enum { FALLING = 0, RISING, CHANGE, LOW_LEVEL  } interrupt_trigger_t;
 
-typedef unsigned char byte;
+/*Renesas S5D9 MCU
+ *
+ * char : signed 8 bits
+ * byte : unsigned 8 bits
+ * word : unsigned 16 bits
+ * int  : signed 32 bits
+ *
+ * unsigned char : unsigned 8 bits
+ * unsigned int  : unsigned 32 bits
+ */
+
+typedef unsigned char   byte;
+typedef uint16_t        word;
+
 
 #define HIGH 1
 #define LOW  0
