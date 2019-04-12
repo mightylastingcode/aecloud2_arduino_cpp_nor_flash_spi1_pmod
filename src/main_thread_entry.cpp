@@ -65,11 +65,13 @@ SPI1    SPI = SPI1();   // SPI 1 port
 #define  ARRAY_READ_CMD                 0x03  // 1+ bytes
 #define  ARRAY_FASTREAD_CMD             0x0B  // 1+ bytes
 
-#define  PAGE_PROGRAM_CMD               0x02
+#define  PAGE_PROGRAM_CMD               0x02   // 256 bytes program
+#define  SUBSECTOR_ERASE_CMD            0x20   // 4K  bytes subsector Erase
 
 #define READHEADER       3   // 3 address bytes
 #define FASTREADHEADER   4   // 3 address bytes + 1 dummy bytes
 #define PGMHEADER        4   // 1 command + 3 address bytes (page program)
+#define SUBSECTERASEHEADER  4   // 1 command + 3 address bytes (sub sector erase)
 
 void display_status_register(char statusbyte);
 void display_flag_status_register(char statusbyte);
@@ -176,19 +178,31 @@ void setup() {
     Serial.println(" HEX");
     display_flag_status_register(data[0]);
     */
+
+#define PGMMEM
+
+#ifdef PGMMEM
     Serial.println("==============================");
-
-
     cmd[0] = PAGE_PROGRAM_CMD;
     cmd[1] = 0x00;  //A<24:16> - Erase Sectors
                     //A<15:12> - Erase Subsectors
-    cmd[2] = 0x06;  //A<11:8> -  Program Pages
+    cmd[2] = 0x0E;  //A<11:8> -  Program Pages
     cmd[3] = 0x00;  //A<7:0> bytes in Page address
 
     for (int i=0; i<256; i++)
-        cmd[i+4] = i + 0x70;
+        cmd[i+4] = i + 0xE0;
     Serial.println("Page Program");
     SPI.write_transfer(cmd, PGMHEADER+256);
+#else
+    Serial.println("==============================");
+    cmd[0] = SUBSECTOR_ERASE_CMD;
+    cmd[1] = 0x00;  //A<24:16> - Erase Sectors
+                    //A<15:12> - Erase Subsectors
+    cmd[2] = 0x00;  //A<11:8> -  Program Pages
+    cmd[3] = 0x00;  //A<7:0> bytes in Page address
+    SPI.write_transfer(cmd, SUBSECTERASEHEADER);
+#endif
+
 
     char status;
     int  counter = 0;
@@ -197,7 +211,7 @@ void setup() {
         SPI.readwrite_transfer(cmd, data, 1);
         Serial.println(data[0] & 0x00FF,HEX);
         status = data[0];
-    } while ((status & 0x01) && (counter++ < 10));
+    } while ((status & 0x01) && (counter++ < 200));  // timeout for 200 check.
 
 
      Serial.println("==============================");
@@ -235,7 +249,7 @@ void setup() {
     int  byte_add = 0;
     int  datalen = 1;
 
-    for (pgm_add = 0; pgm_add < 16; pgm_add++) {
+    for (pgm_add = 0; pgm_add < 32; pgm_add++) {
         read_array_data(data, sect_add, pgm_add, byte_add, datalen);
         Serial.print("Array Data Value (READ) = ");
         Serial.print(data[READHEADER] & 0x00FF,HEX);
