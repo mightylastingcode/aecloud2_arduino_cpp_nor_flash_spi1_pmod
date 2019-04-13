@@ -125,6 +125,31 @@ byte N25Q256A::read_status_register(void){
     return data[0];
 }
 
+byte N25Q256A::read_flag_status_register(void) {
+    char cmd[5];
+    char data[5];
+
+    cmd[0] = READ_FLAG_STATUS_REGISTER_CMD;
+    cmd[1] = 0;
+    cmd[2] = 0;
+    cmd[3] = 0;
+    N25Q256A::print_cmd("READ_FLAG_STATUS_REGISTER",cmd);
+    SPI.readwrite_transfer(cmd, data, 1);
+    return data[0];
+}
+
+void N25Q256A::clear_flag_status_register(void) {
+    char cmd[5];
+    char data[5];
+
+    cmd[0] = CLEAR_FLAG_STATUS_REGISTER_CMD;
+    cmd[1] = 0;
+    cmd[2] = 0;
+    cmd[3] = 0;
+    N25Q256A::print_cmd("CLEAR_FLAG_STATUS_REGISTER",cmd);
+    SPI.write_transfer(cmd,1);
+}
+
 void N25Q256A::write_enable(void) {
     char cmd[5];
     char data[5];
@@ -138,6 +163,47 @@ void N25Q256A::write_enable(void) {
 
 }
 
+void N25Q256A::write_disable(void) {
+    char cmd[5];
+    char data[5];
+
+    cmd[0] = WRITE_DISABLE_CMD;
+    cmd[1] = 0;
+    cmd[2] = 0;
+    cmd[3] = 0;
+    N25Q256A::print_cmd("WRITE_DISABLE",cmd);
+    SPI.write_transfer(cmd,1);
+
+}
+
+void N25Q256A::page_program(const char *data, byte sect_add, byte pgm_add, byte byte_add, int len){
+     char cmd[PGM_DATA_LEN_MAX+PGM_DATA_LEN_MAX];
+     cmd[0] = PAGE_PROGRAM_CMD;
+     cmd[1] = sect_add;   //A<24:16> - Erase Sectors
+                          //A<15:12> - Erase Subsectors
+     cmd[2] = pgm_add;    //A<11:8> -  Program Pages
+     cmd[3] = byte_add;   //A<7:0> bytes in Page address
+
+     if (len > 1){
+         for (int i=0; i<len; i++)
+             cmd[i+4] = data[i];
+         Serial.println("Page Program");
+         if (len <= 256)
+             SPI.write_transfer(cmd, PGMHEADER+len);
+     }
+}
+
+
+void subsector_erase(byte sect_add, byte subsect_add) {
+    char cmd[5];
+
+    cmd[0] = SUBSECTOR_ERASE_CMD;
+    cmd[1] = sect_add;                    //A<24:16> - Erase Sectors
+    cmd[2] = (subsect_add << 4) & 0x00F0;  //A<15:12> - Erase Subsectors
+                                          //A<11:8> = Page program address = 00
+    cmd[3] = 0x00;  //A<7:0> bytes in Page address = 00
+    SPI.write_transfer(cmd, SUBSECTERASEHEADER);
+}
 
 void N25Q256A::display_status_register(status_reg_t reg){
     if (reg.status_bitname.statusreg_wr_enb)
@@ -163,6 +229,41 @@ void N25Q256A::display_status_register(status_reg_t reg){
     else
         Serial.println("Bit 0 Write in progress = False (Ready)");
 
+}
+
+void N25Q256A::display_flag_status_register(flagstatus_reg_t reg) {
+    if (reg.flagstatus_bitname.pgmersready)
+        Serial.println("Bit 7 Program/Erase op = Ready");
+    else
+        Serial.println("Bit 7 Program/Erase op = Busy");
+    if (reg.flagstatus_bitname.ers_suspend)
+        Serial.println("Bit 6 Erase Suspend = ON");
+    else
+        Serial.println("Bit 6 Erase Suspend = OFF");
+    if (reg.flagstatus_bitname.ers_err_status)
+        Serial.println("Bit 5 Erase Status = Fail or Protection Error");
+    else
+        Serial.println("Bit 5 Erase Status = Clear");
+    if (reg.flagstatus_bitname.pgm_err_status)
+        Serial.println("Bit 4 Program Status = Fail or Protection Error");
+    else
+        Serial.println("Bit 4 Program Status = Clear");
+    if (reg.flagstatus_bitname.vpp_disable)
+        Serial.println("Bit 3 VPP = Disable");
+    else
+        Serial.println("Bit 3 VPP = Enable");
+    if (reg.flagstatus_bitname.pgm_suspend)
+        Serial.println("Bit 2 Program Suspend = ON");
+    else
+        Serial.println("Bit 2 Program Suspend = OFF");
+    if (reg.flagstatus_bitname.protect_err)
+        Serial.println("Bit 1 Protection = Fail or Error");
+    else
+        Serial.println("Bit 1 Protection = Clear");
+    if (reg.flagstatus_bitname.extend_addr)
+        Serial.println("Bit 0 Addr = 4 bytes (256Mb)");
+    else
+        Serial.println("Bit 0 Addr = 3 bytes (128Mb)");
 }
 
 void N25Q256A::print_cmd (char* name, char *cmd) {

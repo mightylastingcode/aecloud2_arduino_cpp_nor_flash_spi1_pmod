@@ -62,7 +62,8 @@ void setup() {
     byte sect_add = 0;
     byte pgm_add  = 0;
     byte byte_add = 0;
-    status_reg_t status_reg;
+    status_reg_t        status_reg;
+    flagstatus_reg_t    flagstatus_reg;
 
     Serial.begin(9600);
     //while(!Serial);
@@ -108,7 +109,50 @@ void setup() {
     Serial.print((char)(status_reg.status_byte) & 0x00FF,HEX);
     Serial.println(" HEX");
     norflash.display_status_register(status_reg);
+    /////////////////////////////////////////////////////////////
+    /*
+    norflash.write_disable();
+    /////////////////////////////////////////////////////////////
+    status_reg.status_byte = norflash.read_status_register();
+    Serial.print("Status Register's Value = ");
+    Serial.print((char)(status_reg.status_byte) & 0x00FF,HEX);
+    Serial.println(" HEX");
+    norflash.display_status_register(status_reg);
+    /////////////////////////////////////////////////////////////
+    flagstatus_reg.flagstatus_byte = norflash.read_flag_status_register();
+    Serial.print("Flag Status Register's Value = ");
+    Serial.print((char)(flagstatus_reg.flagstatus_byte) & 0x00FF,HEX);
+    Serial.println(" HEX");
+    norflash.display_flag_status_register(flagstatus_reg);
+    /////////////////////////////////////////////////////////////
+     *
+     */
+    if (status_reg.status_bitname.write_en) {
+        Serial.println("Issue page program command.");
+        sect_add = 0x00;
+        pgm_add =  0x00;
+        byte_add = 0x00;
 
+        for (int i=0; i<256; i++)
+            data[i] = i + 0x80;
+        norflash.page_program(data, sect_add, pgm_add, byte_add, 256);
+    } else {
+        Serial.println("No page program because write enable is off.");
+    }
+
+    int  counter = 0;
+    do {
+         status_reg.status_byte = norflash.read_status_register();
+         Serial.println((char)(status_reg.status_byte) & 0x00FF,HEX);
+     } while ((status_reg.status_bitname.busy == 1) && (counter++ < 200));  // timeout for 200 check.
+     norflash.display_status_register(status_reg);
+     /////////////////////////////////////////////////////////////
+     flagstatus_reg.flagstatus_byte = norflash.read_flag_status_register();
+     Serial.print("Flag Status Register's Value = ");
+     Serial.print((char)(flagstatus_reg.flagstatus_byte) & 0x00FF,HEX);
+     Serial.println(" HEX");
+     norflash.display_flag_status_register(flagstatus_reg);
+     /////////////////////////////////////////////////////////////
     /////////////////////////////////////////////////////////////
     sect_add = 0;
     pgm_add = 0x00;
