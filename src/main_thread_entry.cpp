@@ -109,8 +109,12 @@ void setup() {
 
     // Program a page
     sect_add = 0x00;   // Set the page address and byte address
-    pgm_add =  0x00;
+    pgm_add =  0x02;
     byte_add = 0x00;
+
+    //norflash.read_array_data(data, sect_add, pgm_add, byte_add, 256);
+    norflash.fastread_array_data(data, sect_add, pgm_add, byte_add,8);  // read 256 bytes
+    display_array_data(data, 8);
 
     for (int i=0; i<256; i++)   // Initialize the program data.
         data[i] = i + 0x80;
@@ -234,7 +238,7 @@ void display_array_data(char *data, int len) {
            Serial.print(", ");
            if (i%10 == 9) Serial.println(" ");
      }
-     Serial.println(" ");
+     Serial.println(" \n");
 }
 
 
