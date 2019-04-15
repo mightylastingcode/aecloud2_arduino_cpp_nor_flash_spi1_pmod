@@ -2,8 +2,9 @@
 This is the main thread for placing Arduino Sketch code to run on Renesas AE Cloud2 S5D9 board
 
 Created on: September 17, 2018
-First Released on: March 19, 2019
+First Released on: April 15, 2019
 Author: Michael Li (michael.li@miketechuniverse.com)
+
 
 An Arduino sketch is placed inside the section that is defined by two comment lines.  The section has the
 example of setup() and loop() functions.   You can replace them with your example code.  It is very simple.
@@ -50,6 +51,8 @@ THE SOFTWARE.
 #include "N25Q256A.h"
 
 //====================== Your Arduino Example Sketch Begin ===========//
+
+
 SERIAL1 Serial  = SERIAL1();   //UART 1
 SPI1    SPI = SPI1();   // SPI 1 port  needed by N25Q256A.  Use spi pmod port.
 N25Q256A  norflash = N25Q256A();
@@ -58,14 +61,15 @@ void display_device_info (void);
 void display_device_id_data(char *data);
 void display_status_reg_data(status_reg_t status_reg);
 void display_flag_status_reg_data(flagstatus_reg_t flagstatus_reg);
-int  page_program_with_data(const char *data, byte sect_add, byte pgm_add, byte byte_add, int len);
+int page_program_with_data(const char *data, byte sect_add, byte pgm_add, byte byte_add, int len);
+int sub_sector_erase(byte sect_add, byte subsect_add);
 void display_array_data(char *data, int len);
 
 void setup() {
     char str[NAME_STR_LEN];   // a string to print an output
     char data[256+10];        // Flash read or write data buffer
                               // add overhead (10) to cover command,address,dummy clocks
-
+    int  ret;                 // subroutine return value.
     byte sect_add = 0;
     byte pgm_add  = 0;
     byte byte_add = 0;
@@ -107,6 +111,30 @@ void setup() {
     flagstatus_reg.flagstatus_byte = norflash.read_flag_status_register();
     display_flag_status_reg_data(flagstatus_reg);
 
+
+    // Erase a sector
+    sect_add = 0x00;   // Set the page address and byte address
+    pgm_add =  0x02;
+    byte_add = 0x00;
+
+    //norflash.read_array_data(data, sect_add, pgm_add, byte_add, 256);
+    norflash.fastread_array_data(data, sect_add, pgm_add, byte_add,8);  // read 256 bytes
+    display_array_data(data, 8);
+
+    norflash.write_enable();
+    ret = sub_sector_erase(sect_add, (pgm_add >> 4) & 0x0F);
+    if (!ret)
+        Serial.println("Sub Sector Erase Success!\n");
+    else if (ret == -1)
+        Serial.println("Sub Sector Erase Failure!  Write enable flag is not set.\n");
+    else if (ret == -2)
+        Serial.println("Sub Sector Erase Failure!  Erase error flag is asserted.\n");
+
+
+    //norflash.read_array_data(data, sect_add, pgm_add, byte_add, 256);
+    norflash.fastread_array_data(data, sect_add, pgm_add, byte_add,8);  // read 256 bytes
+    display_array_data(data, 8);
+
     // Program a page
     sect_add = 0x00;   // Set the page address and byte address
     pgm_add =  0x02;
@@ -120,7 +148,7 @@ void setup() {
         data[i] = i + 0x80;
 
     norflash.write_enable();
-    int ret = page_program_with_data(data,sect_add,pgm_add,byte_add,256);
+    ret = page_program_with_data(data,sect_add,pgm_add,byte_add,256);
     if (!ret)
         Serial.println("Program Success!\n");
     else if (ret == -1)
@@ -222,6 +250,50 @@ int page_program_with_data(const char *data, byte sect_add, byte pgm_add, byte b
            return -2;
        } else {
            Serial.println("Pass: Program Clear.");
+       }
+
+       Serial.println("Clear Flag Status Register");
+       norflash.clear_flag_status_register();
+       return 0;
+}
+
+// input : Sector Address <sect_add>  Sub Sector Address <pgm_add<7:4>>
+//
+// return status (0 success, -1 fail (write disable), -2 fail (pgm error)
+int sub_sector_erase(byte sect_add, byte subsect_add) {
+    status_reg_t status_reg;
+    flagstatus_reg_t flagstatus_reg;
+
+
+    // Read status register
+    status_reg.status_byte = norflash.read_status_register();
+    display_status_reg_data(status_reg);
+
+    //Sub Sector Erase
+      if (status_reg.status_bitname.write_en) {
+          Serial.println("Issue sub sector erase command.");
+          norflash.subsector_erase(sect_add, subsect_add);
+      } else {
+          Serial.println("No sub sector erase because write enable is off.");
+          return -1;
+      }
+
+      int  counter = 0;
+      do {
+           status_reg.status_byte = norflash.read_status_register();
+           Serial.println((char)(status_reg.status_byte) & 0x00FF,HEX);
+       } while ((status_reg.status_bitname.busy == 1) && (counter++ < 200));  // timeout for 200 check.
+       norflash.display_status_register(status_reg);
+       display_status_reg_data(status_reg);
+
+       flagstatus_reg.flagstatus_byte = norflash.read_flag_status_register();
+       display_flag_status_reg_data(flagstatus_reg);
+
+       if (flagstatus_reg.flagstatus_bitname.ers_err_status) {
+           Serial.println("Fail: Erase Status Error.");
+           return -2;
+       } else {
+           Serial.println("Pass: Erase Status Clear.");
        }
 
        Serial.println("Clear Flag Status Register");

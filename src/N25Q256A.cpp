@@ -194,7 +194,7 @@ void N25Q256A::page_program(const char *data, byte sect_add, byte pgm_add, byte 
 }
 
 
-void subsector_erase(byte sect_add, byte subsect_add) {
+void N25Q256A::subsector_erase(byte sect_add, byte subsect_add) {
     char cmd[5];
 
     cmd[0] = SUBSECTOR_ERASE_CMD;
