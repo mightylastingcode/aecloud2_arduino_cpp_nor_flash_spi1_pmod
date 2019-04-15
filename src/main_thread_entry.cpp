@@ -57,6 +57,10 @@ SERIAL1 Serial  = SERIAL1();   //UART 1
 SPI1    SPI = SPI1();   // SPI 1 port  needed by N25Q256A.  Use spi pmod port.
 N25Q256A  norflash = N25Q256A();
 
+#define  NORFLASH_HOLDb    9    //
+#define  NORFLASH_WPb     10    // WPb pin works with Status Register bit 7
+                                // for Status Register write protection.
+
 void display_device_info (void);
 void display_device_id_data(char *data);
 void display_status_reg_data(status_reg_t status_reg);
@@ -80,7 +84,10 @@ void setup() {
     Serial.begin(9600); // Serial Object
     Serial.println("\n\nbegin uart1...\n\n");
     norflash.begin();   // Flash Memory Object
-
+    pinMode(NORFLASH_HOLDb, OUTPUT);
+    pinMode(NORFLASH_WPb, OUTPUT);
+    digitalWrite(NORFLASH_HOLDb, HIGH);     // sets the digital pin to 1 (not using it in this example.)
+    digitalWrite(NORFLASH_WPb, HIGH);       // sets the digital pin to 1 (not using it in this example.)
 
     // Get Device information
     display_device_info();
@@ -114,7 +121,7 @@ void setup() {
 
     // Erase a sector
     sect_add = 0x00;   // Set the page address and byte address
-    pgm_add =  0x02;
+    pgm_add =  0x03;
     byte_add = 0x00;
 
     //norflash.read_array_data(data, sect_add, pgm_add, byte_add, 256);
@@ -145,7 +152,7 @@ void setup() {
     display_array_data(data, 8);
 
     for (int i=0; i<256; i++)   // Initialize the program data.
-        data[i] = i + 0x80;
+        data[i] = i + 0xC0;
 
     norflash.write_enable();
     ret = page_program_with_data(data,sect_add,pgm_add,byte_add,256);
