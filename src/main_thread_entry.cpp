@@ -121,7 +121,7 @@ void setup() {
 
     // Erase a sector
     sect_add = 0x00;   // Set the page address and byte address
-    pgm_add =  0x03;
+    pgm_add =  0x02;
     byte_add = 0x00;
 
     //norflash.read_array_data(data, sect_add, pgm_add, byte_add, 256);
